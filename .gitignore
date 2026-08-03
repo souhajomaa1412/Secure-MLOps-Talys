@@ -1,12 +1,27 @@
-venv/ 
-__pycache__/ 
-*.pyc 
-.env 
-mlruns/ 
-models/ 
-mlruns/
+# Environnement Python
+.venv/
 venv/
-/mlruns
+__pycache__/
+*.pyc
+*.pyo
+
+# Variables d'environnement
+.env
+.env.*
+
+# MLflow
+mlruns/
+
+# Modèles (gérés par DVC)
+models/
+
+# Métriques
+metrics.json
+
+# Données (gérées par DVC)
+data/diabetes.csv
+data/iris_dataset.csv
+
 # IDE
 .vscode/
 .idea/
@@ -15,6 +30,7 @@ venv/
 
 # OS
 .DS_Store
-Thumbs.dbdata/diabetes.csv
-data/iris_dataset.csv
-/metrics.json
+Thumbs.db
+
+# Logs
+*.log
