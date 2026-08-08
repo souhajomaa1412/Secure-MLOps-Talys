@@ -1,7 +1,23 @@
 FROM apache/airflow:2.9.0
+USER root
+
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    default-jre-headless \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV JAVA_HOME=/usr/lib/jvm/default-java
+
 USER airflow
+# Versions alignées avec requirements.txt de l'API : un scikit-learn différent
+# entre l'entraînement (ici) et l'inférence (API) peut faire planter joblib.load().
 RUN pip install --no-cache-dir \
-    pandas \
-    scikit-learn \
-    mlflow \
-    joblib
+    pandas==2.2.2 \
+    scikit-learn==1.4.2 \
+    mlflow-skinny==2.14.3 \
+    joblib==1.4.2 \
+    xgboost==2.0.3 \
+    pyspark==3.5.1 \
+    pyarrow==18.0.0

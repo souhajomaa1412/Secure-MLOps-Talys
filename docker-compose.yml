@@ -9,7 +9,14 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./initdb/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
+    networks:
+      - mlops-network
 
   api:
     build:
@@ -23,8 +30,17 @@ services:
       PYTHONUNBUFFERED: 1
       MLFLOW_TRACKING_URI: http://mlflow:5000
     depends_on:
-      - mlflow
+      mlflow:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
+    networks:
+      - mlops-network
 
   mlflow:
     image: ghcr.io/mlflow/mlflow:v3.14.0
@@ -32,7 +48,8 @@ services:
     ports:
       - "5000:5000"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       MLFLOW_BACKEND_STORE_URI: postgresql://postgres:postgres@postgres:5432/mlflow
     volumes:
@@ -42,11 +59,15 @@ services:
       pip install psycopg2-binary &&
       mlflow server
       --backend-store-uri postgresql://postgres:postgres@postgres:5432/mlflow
-      --default-artifact-root /mlartifacts
+      --default-artifact-root mlflow-artifacts:/
+      --artifacts-destination /mlartifacts
       --host 0.0.0.0
       --port 5000
+      --allowed-hosts 'mlflow:*,localhost:*,127.0.0.1:*'
       "
     restart: unless-stopped
+    networks:
+      - mlops-network
 
   airflow-init:
     build:
@@ -54,7 +75,8 @@ services:
       dockerfile: Dockerfile.airflow
     container_name: mlops-airflow-init
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
@@ -71,6 +93,8 @@ services:
       --email admin@example.com || true
       "
     restart: "no"
+    networks:
+      - mlops-network
 
   airflow-webserver:
     build:
@@ -79,7 +103,7 @@ services:
     container_name: mlops-airflow-webserver
     depends_on:
       postgres:
-        condition: service_started
+        condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
     ports:
@@ -89,6 +113,7 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"
+      MLFLOW_TRACKING_URI: http://mlflow:5000
     volumes:
       - ./dags:/opt/airflow/dags
       - ./data:/opt/airflow/data
@@ -101,6 +126,8 @@ services:
       timeout: 10s
       retries: 5
     restart: unless-stopped
+    networks:
+      - mlops-network
 
   airflow-scheduler:
     build:
@@ -109,7 +136,7 @@ services:
     container_name: mlops-airflow-scheduler
     depends_on:
       postgres:
-        condition: service_started
+        condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
     environment:
@@ -117,6 +144,7 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"
+      MLFLOW_TRACKING_URI: http://mlflow:5000
     volumes:
       - ./dags:/opt/airflow/dags
       - ./data:/opt/airflow/data
@@ -124,6 +152,12 @@ services:
       - ./src:/opt/airflow/src
     command: airflow scheduler
     restart: unless-stopped
+    networks:
+      - mlops-network
 
 volumes:
   postgres-data:
+
+networks:
+  mlops-network:
+    driver: bridge

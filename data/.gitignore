@@ -1,2 +1,5 @@
 /dataset.csv
 /diabetes.csv
+/diabetes_processed.csv
+/X_test.csv
+/y_test.csv

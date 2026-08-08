@@ -1,18 +1,28 @@
 # dvc.yaml
 stages:
+  preprocess:
+    cmd: python src/preprocess_spark.py
+    deps:
+      - src/preprocess_spark.py
+      - data/diabetes.csv
+    outs:
+      - data/diabetes_processed.csv
+
   train:
     cmd: python src/train.py
     deps:
       - src/train.py
-      - data/diabetes.csv
+      - data/diabetes_processed.csv
     outs:
       - models/model.pkl
-      - mlruns/
-      - metrics.json
+      - data/X_test.csv
+      - data/y_test.csv
+    metrics:
+      - metrics.json:
+          cache: false
 
   validate:
     cmd: python src/validate.py
     deps:
       - src/validate.py
-      - models/model.pkl
-      - data/diabetes.csv
+      - metrics.json

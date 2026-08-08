@@ -3,42 +3,55 @@ stages:
   train:
     cmd: python src/train.py
     deps:
-    - path: data/diabetes.csv
+    - path: data/diabetes_processed.csv
       hash: md5
-      md5: f2906818eda8fcfc8f8416557ab1e6df
-      size: 23873
+      md5: 5d27be24f81b884e1dd88850d8a237ba
+      size: 38789
     - path: src/train.py
       hash: md5
-      md5: c06a252ab5ff5dcea1636e0f357a5267
-      size: 2759
-      isexec: true
+      md5: 099a8124133c0ff225cd0d0e20f30ebb
+      size: 7985
     outs:
+    - path: data/X_test.csv
+      hash: md5
+      md5: 1861d89ff9ed111befadb948d19738ac
+      size: 7817
+    - path: data/y_test.csv
+      hash: md5
+      md5: cd8b71a6ba9de03223da24909eac0748
+      size: 316
     - path: metrics.json
       hash: md5
-      md5: 48fdc0d7d01a60cf166db06630ee08d8
-      size: 211
-    - path: mlruns/
-      hash: md5
-      md5: f0aee30d453e86144e6537a7f5980f36.dir
-      size: 3147511
-      nfiles: 5
+      md5: 309e9387a742bcfe7b8cbde59a00b1c3
+      size: 327
     - path: models/model.pkl
       hash: md5
-      md5: 903c9001ebaf31176ff5fe9be2921f48
-      size: 659273
+      md5: 2e6bf9c0620ed83e7b44b05c8c356b8d
+      size: 773881
   validate:
     cmd: python src/validate.py
+    deps:
+    - path: metrics.json
+      hash: md5
+      md5: 309e9387a742bcfe7b8cbde59a00b1c3
+      size: 327
+    - path: src/validate.py
+      hash: md5
+      md5: 88755b70fae875bb6bfcd309d589d292
+      size: 1146
+  preprocess:
+    cmd: python src/preprocess_spark.py
     deps:
     - path: data/diabetes.csv
       hash: md5
       md5: f2906818eda8fcfc8f8416557ab1e6df
       size: 23873
-    - path: models/model.pkl
+    - path: src/preprocess_spark.py
       hash: md5
-      md5: 903c9001ebaf31176ff5fe9be2921f48
-      size: 659273
-    - path: src/validate.py
+      md5: 32227213469b4ff0aca090aa543840e7
+      size: 1809
+    outs:
+    - path: data/diabetes_processed.csv
       hash: md5
-      md5: 8b45016eb2709428d38db413ada71e97
-      size: 2077
-      isexec: true
+      md5: 5d27be24f81b884e1dd88850d8a237ba
+      size: 38789

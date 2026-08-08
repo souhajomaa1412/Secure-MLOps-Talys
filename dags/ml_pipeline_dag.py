@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 default_args = {
-    'owner': 'souha',
+    'owner': 'souhajo',
     'depends_on_past': False,
     'start_date': datetime(2026, 7, 1),
     'retries': 1,
@@ -28,16 +28,16 @@ def extract_data():
     print(f"Data extracted: {df.shape}")
     return df.shape
 
+
 def preprocess_data():
-    import pandas as pd # noqa
-    from sklearn.model_selection import train_test_split # noqa
-    df = pd.read_csv('/opt/airflow/data/diabetes.csv')
-    X = df.drop('Outcome', axis=1)
-    y = df['Outcome']
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
+    import subprocess
+    result = subprocess.run(
+        ['python', '/opt/airflow/src/preprocess_spark.py'],
+        capture_output=True, text=True
     )
-    print(f"Train: {X_train.shape}, Test: {X_test.shape}")
+    print(result.stdout)
+    if result.returncode != 0:
+        raise Exception(result.stderr)
 
 def train_model():
     import subprocess
