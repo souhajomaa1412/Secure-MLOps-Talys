@@ -41,7 +41,8 @@ services:
     restart: unless-stopped
     networks:
       - mlops-network
-
+    #artefacts proxifiés"  le client envoie les artefacts en HTTP au serveur MLflow
+    #au lieu d'essayer d'écrire sur un chemin local partagé qui n'existe que côté serveur.
   mlflow:
     image: ghcr.io/mlflow/mlflow:v3.14.0
     container_name: mlops-mlflow

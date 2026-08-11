@@ -1,2 +1,3 @@
 CREATE DATABASE airflow;
 CREATE DATABASE mlflow;
+CREATE DATABASE mlops_predictions;

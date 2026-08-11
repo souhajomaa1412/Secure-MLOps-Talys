@@ -1,24 +1,4 @@
-"""
-Pipeline d'entraînement - Diabetes MLOps Pipeline
 
-Corrections apportées par rapport à la version précédente :
-1. MLFLOW_TRACKING_URI a un fallback LOCAL par défaut (file:./mlruns) au lieu
-   du hostname docker "mlflow". Ça évite le crash NameResolutionError quand
-   le script tourne hors conteneur. En docker-compose, on override juste
-   la variable d'env (MLFLOW_TRACKING_URI=http://mlflow:5000).
-2. On compare 4 modèles (LogisticRegression, RandomForest, SVM_RBF, XGBoost)
-   avec GridSearchCV, comme prévu dans le cahier des charges, au lieu
-   d'entraîner un seul RandomForest.
-3. Le scaler n'est sauvegardé QUE si le modèle retenu en a besoin, et
-   needs_scaling est écrit dans metrics.json pour que l'API sache s'il faut
-   scaler les features à l'inférence.
-4. Le split X_test/y_test est sauvegardé sur disque (data/X_test.csv,
-   data/y_test.csv) pour que les tests pytest évaluent le modèle sur le
-   VRAI jeu de test, pas sur les données d'entraînement (fuite de données
-   dans ton test_model_accuracy actuel).
-5. Seuil d'acceptation unifié à 0.70 partout (train.py / validate.py /
-   metrics.json) - avant tu avais 0.70 dans un script et 0.68 dans l'autre.
-"""
 
 import pandas as pd
 import numpy as np
@@ -35,19 +15,18 @@ from sklearn.svm import SVC
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-import mlflow
 import mlflow.sklearn
 
-warnings.filterwarnings('ignore')
 
-# ========== CONFIGURATION ==========
-# Toujours lire les données déjà nettoyées par Spark, pas le CSV brut.
+# CONFIGURATION
+
 DATASET_PATH = os.environ.get('DATASET_PATH', 'data/diabetes_processed.csv')
 MODEL_PATH = 'models/model.pkl'
 SCALER_PATH = 'models/scaler.pkl'
 METRICS_PATH = 'metrics.json'
 X_TEST_PATH = 'data/X_test.csv'
 Y_TEST_PATH = 'data/y_test.csv'
+# Seuil d'acceptation unifié à 0.65 partout (train.py / validate.py /metrics.json)
 SEUIL_ACCEPTATION = float(os.environ.get('SEUIL_ACCEPTATION', 0.65))
 
 if not os.path.exists(DATASET_PATH):
@@ -61,31 +40,29 @@ print(f"Dataset chargé : {df.shape[0]} lignes, {df.shape[1]} colonnes")
 X = df.drop('Outcome', axis=1)
 y = df['Outcome']
 
-# Split train/test (80/20, stratifié pour garder le ratio de classes)
+# Split train/test 80/20
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 
-# Sauvegarder le split de test pour que les tests pytest et validate.py
-# évaluent sur des données jamais vues à l'entraînement.
+
 os.makedirs('data', exist_ok=True)
 X_test.to_csv(X_TEST_PATH, index=False)
 y_test.to_csv(Y_TEST_PATH, index=False)
 
-# Scaling (nécessaire pour LR et SVM uniquement)
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
 os.makedirs('models', exist_ok=True)
 
-# ========== MLFLOW TRACKING ==========
+# MLFLOW TRACKING
 mlflow_uri = os.environ.get("MLFLOW_TRACKING_URI", "file:./mlruns")
 mlflow.set_tracking_uri(mlflow_uri)
 mlflow.set_experiment("mlops-pipeline-diabetes")
 print(f"MLflow tracking URI : {mlflow_uri}")
 
-# ========== DÉFINITION DES 4 MODÈLES ==========
+# DÉFINITION DES 4 MODÈLES
 experiments = [
     {
         'name': 'LogisticRegression',
@@ -160,7 +137,7 @@ for exp in experiments:
         print(f"  Best params : {grid.best_params_}")
         print(f"  F1-Score    : {f1:.4f} | Accuracy : {acc:.4f}")
 
-# ========== SÉLECTION DU MEILLEUR MODÈLE ==========
+# SÉLECTION DU MEILLEUR MODÈLE
 results_df = pd.DataFrame(results).sort_values('f1_score', ascending=False)
 best_result = results_df.iloc[0]
 
@@ -170,7 +147,7 @@ print("=" * 70)
 print(results_df[['algorithm', 'accuracy', 'precision', 'recall', 'f1_score', 'cv_f1']].to_string(index=False))
 print(f"\n🏆 Meilleur algorithme : {best_result['algorithm']} (F1={best_result['f1_score']:.4f})")
 
-# ========== RÉENTRAÎNEMENT FINAL & SAUVEGARDE ==========
+# RÉENTRAÎNEMENT FINAL & SAUVEGARDE
 best_exp = next(e for e in experiments if e['name'] == best_result['algorithm'])
 needs_scaling = best_exp['needs_scaling']
 X_tr_final = X_train_scaled if needs_scaling else X_train
@@ -183,7 +160,7 @@ joblib.dump(final_model, MODEL_PATH)
 if needs_scaling:
     joblib.dump(scaler, SCALER_PATH)
 elif os.path.exists(SCALER_PATH):
-    os.remove(SCALER_PATH)  # évite un scaler obsolète d'un run précédent
+    os.remove(SCALER_PATH)
 
 metrics = {
     "best_algorithm": best_result['algorithm'],
@@ -200,7 +177,7 @@ with open(METRICS_PATH, 'w') as f:
     json.dump(metrics, f, indent=2)
 
 print(f"\n✅ Modèle sauvegardé : {MODEL_PATH}")
-print(f"✅ Métriques sauvegardées : {METRICS_PATH}")
+print(f"Métriques sauvegardées : {METRICS_PATH}")
 
 if best_result['f1_score'] >= SEUIL_ACCEPTATION:
     print(f"✅ MODÈLE VALIDÉ (F1 {best_result['f1_score']:.4f} >= {SEUIL_ACCEPTATION})")

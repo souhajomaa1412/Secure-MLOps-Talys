@@ -19,8 +19,8 @@ models/
 metrics.json
 
 # Données (gérées par DVC)
-data/diabetes.csv
-data/iris_dataset.csv
+data/*
+!data/diabetes.csv
 
 # IDE
 .vscode/
