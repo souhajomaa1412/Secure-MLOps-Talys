@@ -27,7 +27,6 @@ METRICS_PATH = "metrics.json"
 
 DEMO_HTML_PATH = Path(__file__).resolve().parent.parent / "templates" / "predict.html"
 
-# POSTGRES
 
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
@@ -39,8 +38,7 @@ try:
     db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, DATABASE_URL)
     logger.info("Pool de connexions Postgres initialisé")
 except Exception as e:
-    # On NE PLANTE PAS l'API si Postgres est down : les prédictions doivent
-    # continuer à fonctionner, on perd juste le logging.
+   
     logger.warning(f"Postgres indisponible au démarrage ({e}) — logging désactivé")
 
 
@@ -76,6 +74,7 @@ def init_db():
 
 
 def log_prediction(data: "DiabetesInput", prediction: int, confidence: float, algorithm: str):
+    """Non-bloquant : une erreur ici ne doit jamais faire échouer /predict."""
     if db_pool is None:
         return
     conn = None
@@ -123,7 +122,7 @@ def load_metrics():
 def load_demo_html():
     if DEMO_HTML_PATH.exists():
         return DEMO_HTML_PATH.read_text(encoding="utf-8")
-    return "<h1>Page de démo introuvable</h1>"
+    return "<h1>Page de démo introuvable</h1><p>templates/demo.html n'existe pas.</p>"
 
 
 model = load_model()
@@ -132,11 +131,10 @@ metrics_info = load_metrics()
 demo_html = load_demo_html()
 init_db()
 
-# Prometheus METRICS
+# Prometheus : expose /metrics automatiquement
 Instrumentator().instrument(app).expose(app)
 
 
-# SCHEMAS
 class DiabetesInput(BaseModel):
     pregnancies: int = Field(ge=0, le=20)
     glucose: float = Field(gt=0, le=300)
@@ -177,6 +175,7 @@ def health():
 
 @app.get("/stats")
 def stats():
+    """Petite preuve d'usage de Postgres : compte les prédictions loggées."""
     if db_pool is None:
         raise HTTPException(status_code=503, detail="Postgres indisponible")
     conn = db_pool.getconn()

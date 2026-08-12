@@ -1,5 +1,4 @@
 
-
 import pandas as pd
 import numpy as np
 import json
@@ -17,6 +16,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 import mlflow.sklearn
 
+warnings.filterwarnings('ignore')
 
 # CONFIGURATION
 

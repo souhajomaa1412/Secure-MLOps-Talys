@@ -4,6 +4,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     libgomp1 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -14,6 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ ./src/
 COPY models/ ./models/
 COPY data/ ./data/
+COPY templates/ ./templates/
+COPY metrics.json .
 
 EXPOSE 8000
 
