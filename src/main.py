@@ -11,6 +11,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from prometheus_fastapi_instrumentator import Instrumentator
+from cryptography.fernet import Fernet, InvalidToken
+
+from dotenv import load_dotenv #.env
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("mlops-api")
@@ -41,6 +45,26 @@ except Exception as e:
    
     logger.warning(f"Postgres indisponible au démarrage ({e}) — logging désactivé")
 
+# CHIFFREMENT (données au repos)
+# La clé doit être fournie via variable d'environnement / secret, JAMAIS
+ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY")
+
+fernet = None
+if ENCRYPTION_KEY:
+    try:
+        fernet = Fernet(ENCRYPTION_KEY.encode())
+        logger.info("Chiffrement activé (Fernet/AES)")
+    except Exception as e:
+        logger.error(f"ENCRYPTION_KEY invalide, chiffrement désactivé : {e}")
+else:
+
+    fernet = Fernet(Fernet.generate_key())
+    logger.warning(
+        "ENCRYPTION_KEY absente : clé de chiffrement éphémère générée pour "
+        "cette session (dev uniquement — les données ne seront plus "
+        "déchiffrables après un redémarrage). Configure ENCRYPTION_KEY en prod."
+    )
+
 
 def init_db():
     if db_pool is None:
@@ -52,14 +76,7 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS predictions (
                     id SERIAL PRIMARY KEY,
                     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-                    pregnancies INT,
-                    glucose FLOAT,
-                    blood_pressure FLOAT,
-                    skin_thickness FLOAT,
-                    insulin FLOAT,
-                    bmi FLOAT,
-                    diabetes_pedigree FLOAT,
-                    age INT,
+                    encrypted_data BYTEA NOT NULL,
                     prediction INT,
                     confidence FLOAT,
                     algorithm TEXT
@@ -74,22 +91,31 @@ def init_db():
 
 
 def log_prediction(data: "DiabetesInput", prediction: int, confidence: float, algorithm: str):
-    """Non-bloquant : une erreur ici ne doit jamais faire échouer /predict."""
-    if db_pool is None:
+
+    if db_pool is None or fernet is None:
         return
     conn = None
     try:
+        clinical_payload = json.dumps({
+            "pregnancies": data.pregnancies,
+            "glucose": data.glucose,
+            "blood_pressure": data.blood_pressure,
+            "skin_thickness": data.skin_thickness,
+            "insulin": data.insulin,
+            "bmi": data.bmi,
+            "diabetes_pedigree": data.diabetes_pedigree,
+            "age": data.age,
+        }).encode("utf-8")
+        encrypted_data = fernet.encrypt(clinical_payload)
+
         conn = db_pool.getconn()
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO predictions
-                (pregnancies, glucose, blood_pressure, skin_thickness, insulin,
-                 bmi, diabetes_pedigree, age, prediction, confidence, algorithm)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                (encrypted_data, prediction, confidence, algorithm)
+                VALUES (%s,%s,%s,%s)
             """, (
-                data.pregnancies, data.glucose, data.blood_pressure, data.skin_thickness,
-                data.insulin, data.bmi, data.diabetes_pedigree, data.age,
-                prediction, confidence, algorithm
+                psycopg2.Binary(encrypted_data), prediction, confidence, algorithm
             ))
         conn.commit()
     except Exception as e:
@@ -122,7 +148,7 @@ def load_metrics():
 def load_demo_html():
     if DEMO_HTML_PATH.exists():
         return DEMO_HTML_PATH.read_text(encoding="utf-8")
-    return "<h1>Page de démo introuvable</h1><p>templates/demo.html n'existe pas.</p>"
+    return "<h1>Page de démo introuvable</h1><p>templates/predict.html n'existe pas.</p>"
 
 
 model = load_model()
