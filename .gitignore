@@ -35,3 +35,17 @@ Thumbs.db
 # Logs
 *.log
 *.env
+
+# ===== Secrets Kubernetes =====
+k8s/postgres-secret.yaml
+k8s/api-secrets.yaml
+k8s/*-secret.yaml
+k8s/*-secrets.yaml
+!k8s/*.yaml.example
+
+
+# ===== Logs de build =====
+build.log
+
+# ===== Base MLflow locale de secours =====
+mlflow.db

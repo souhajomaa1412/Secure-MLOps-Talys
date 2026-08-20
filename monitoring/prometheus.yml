@@ -1,15 +1,13 @@
 global:
   scrape_interval: 15s
-
 scrape_configs:
   - job_name: 'mlops-api'
     metrics_path: /metrics
     scheme: http
     static_configs:
-
       - targets: ['api:8000']
   - job_name: 'gpu'
     metrics_path: /metrics
     scheme: http
     static_configs:
-      - targets: [ 'gpu-exporter:9835' ]
+      - targets: ['host.docker.internal:9400']

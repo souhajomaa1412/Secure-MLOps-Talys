@@ -5,6 +5,7 @@ from airflow.operators.python import PythonOperator # noqa
 from datetime import datetime, timedelta
 import subprocess
 import sys
+import os
 
 default_args = {
     'owner': 'souhajo',
@@ -59,6 +60,30 @@ def validate_model():
     if result.returncode != 0:
         raise Exception("Model validation failed!")
 
+
+def security_check():
+
+    from cryptography.fernet import Fernet, InvalidToken
+
+    key = os.environ.get("ENCRYPTION_KEY")
+    if not key:
+        raise Exception(
+            "SECURITY CHECK FAILED: ENCRYPTION_KEY absente. "
+            "Le pipeline ne doit pas être considéré prêt pour un déploiement "
+            "sans clé de chiffrement configurée."
+        )
+
+    try:
+        fernet = Fernet(key.encode())
+        test_payload = b'{"test": "security_check"}'
+        encrypted = fernet.encrypt(test_payload)
+        decrypted = fernet.decrypt(encrypted)
+        assert decrypted == test_payload
+        print("✅ SECURITY CHECK PASSED : chiffrement/déchiffrement fonctionnel")
+    except (InvalidToken, ValueError, AssertionError) as e:
+        raise Exception(f"SECURITY CHECK FAILED : clé invalide ou aller-retour échoué ({e})")
+
+
 # Définir les tâches
 task_extract = PythonOperator(
     task_id='extract_data',
@@ -84,4 +109,11 @@ task_validate = PythonOperator(
     dag=dag
 )
 
-# Ordre d'exécution du DAG task_extract >> task_preprocess >> task_train >> task_validate
+task_security = PythonOperator(
+    task_id='security_check',
+    python_callable=security_check,
+    dag=dag
+)
+
+
+task_extract >> task_preprocess >> task_train >> task_validate >> task_security
