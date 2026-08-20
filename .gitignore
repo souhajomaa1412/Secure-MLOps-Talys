@@ -11,7 +11,7 @@ __pycache__/
 
 # MLflow
 mlruns/
-
+mlartifacts/
 # Modèles (gérés par DVC)
 models/
 
@@ -48,4 +48,4 @@ k8s/*-secrets.yaml
 build.log
 
 # ===== Base MLflow locale de secours =====
-mlflow.db
+mlflow.dbmlartifacts/
