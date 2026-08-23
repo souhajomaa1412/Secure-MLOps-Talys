@@ -45,8 +45,7 @@ except Exception as e:
    
     logger.warning(f"Postgres indisponible au démarrage ({e}) — logging désactivé")
 
-# CHIFFREMENT (données au repos)
-# La clé doit être fournie via variable d'environnement / secret, JAMAIS
+# CHIFFREMENT Fernet
 ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY")
 
 fernet = None
