@@ -49,3 +49,4 @@ build.log
 
 # ===== Base MLflow locale de secours =====
 mlflow.dbmlartifacts/
+.venv-fhe/
