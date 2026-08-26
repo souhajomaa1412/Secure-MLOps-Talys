@@ -12,15 +12,19 @@ Objectifs :
 import time
 
 import pandas as pd
+from concrete.ml.sklearn import LogisticRegression as FHELogisticRegression
 from sklearn.linear_model import LogisticRegression as ClearLogisticRegression
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import train_test_split
-from concrete.ml.sklearn import LogisticRegression as FHELogisticRegression
+from sklearn.preprocessing import StandardScaler
 
+
+# ============================================================
+# CONFIGURATION
+# ============================================================
 
 DATASET_PATH = "data/diabetes_processed.csv"
 
-# Configuration de la POC
 N_BITS = 12
 N_SAMPLES = 100
 
@@ -28,6 +32,8 @@ N_SAMPLES = 100
 # ============================================================
 # DONNÉES
 # ============================================================
+
+print("Chargement des données...")
 
 df = pd.read_csv(DATASET_PATH)
 
@@ -44,13 +50,34 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 
 # ============================================================
+# STANDARDISATION
+# ============================================================
+# Même preprocessing que celui utilisé pour la régression
+# logistique dans le pipeline de production.
+
+print("Standardisation des données...")
+
+scaler = StandardScaler()
+
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+
+# ============================================================
 # MODÈLE EN CLAIR
 # ============================================================
 
 print("Entraînement du modèle en clair...")
 
-clear_model = ClearLogisticRegression(max_iter=1000)
-clear_model.fit(X_train, y_train)
+clear_model = ClearLogisticRegression(
+    max_iter=1000,
+    random_state=42
+)
+
+clear_model.fit(
+    X_train_scaled,
+    y_train
+)
 
 
 # ============================================================
@@ -59,32 +86,42 @@ clear_model.fit(X_train, y_train)
 
 print("Entraînement du modèle FHE...")
 
-fhe_model = FHELogisticRegression(n_bits=N_BITS)
-fhe_model.fit(X_train, y_train)
+fhe_model = FHELogisticRegression(
+    n_bits=N_BITS
+)
+
+fhe_model.fit(
+    X_train_scaled,
+    y_train
+)
 
 print("Compilation du circuit FHE...")
 
-fhe_model.compile(X_train)
+fhe_model.compile(
+    X_train_scaled
+)
 
 
 # ============================================================
-# COMPARAISON SUR LES ÉCHANTILLONS
+# COMPARAISON
 # ============================================================
 
-n_test = min(N_SAMPLES, len(X_test))
+n_test = min(N_SAMPLES, len(X_test_scaled))
 
 clear_predictions = []
 fhe_predictions = []
 
-total_clear_time = 0
-total_fhe_time = 0
+total_clear_time = 0.0
+total_fhe_time = 0.0
 
 print("\nExécution des prédictions FHE...")
 print("=" * 90)
 
+
 for i in range(n_test):
 
-    sample = X_test[i:i + 1]
+    # Un seul échantillon standardisé
+    sample = X_test_scaled[i:i + 1]
 
     # --------------------------------------------------------
     # Prédiction en clair
@@ -95,6 +132,7 @@ for i in range(n_test):
     pred_clear = clear_model.predict(sample)[0]
 
     t_clear = time.perf_counter() - t0
+
     total_clear_time += t_clear
 
     # --------------------------------------------------------
@@ -109,14 +147,19 @@ for i in range(n_test):
     )[0]
 
     t_fhe = time.perf_counter() - t0
+
     total_fhe_time += t_fhe
 
     # --------------------------------------------------------
-    # Stockage des résultats
+    # Stockage
     # --------------------------------------------------------
 
     clear_predictions.append(pred_clear)
     fhe_predictions.append(pred_fhe)
+
+    # --------------------------------------------------------
+    # Comparaison
+    # --------------------------------------------------------
 
     if pred_clear == pred_fhe:
         status = "✓"
@@ -134,7 +177,7 @@ for i in range(n_test):
 
 
 # ============================================================
-# MÉTRIQUES
+# TAUX D'ACCORD
 # ============================================================
 
 agreement = sum(
@@ -143,6 +186,11 @@ agreement = sum(
 )
 
 agreement_rate = agreement / n_test
+
+
+# ============================================================
+# ACCURACY
+# ============================================================
 
 clear_accuracy = accuracy_score(
     y_test[:n_test],
@@ -153,6 +201,11 @@ fhe_accuracy = accuracy_score(
     y_test[:n_test],
     fhe_predictions
 )
+
+
+# ============================================================
+# F1-SCORE
+# ============================================================
 
 clear_f1 = f1_score(
     y_test[:n_test],
@@ -188,8 +241,13 @@ print("\n" + "=" * 70)
 print("RÉSULTATS POC FHE")
 print("=" * 70)
 
-print(f"Nombre d'échantillons       : {n_test}")
-print(f"Nombre de bits (n_bits)     : {N_BITS}")
+print(
+    f"Nombre d'échantillons       : {n_test}"
+)
+
+print(
+    f"Nombre de bits (n_bits)     : {N_BITS}"
+)
 
 print(
     f"Taux d'accord clair/FHE    : "
@@ -254,12 +312,22 @@ print(
 )
 
 if agreement_rate < 1:
+
     divergences = n_test - agreement
 
     print(
-        f"{divergences} divergence(s) ont été observées. "
-        f"Ces différences peuvent notamment être liées à la "
-        f"quantification utilisée pour l'inférence FHE."
+        f"{divergences} divergence(s) ont été observées."
+    )
+
+    print(
+        "Ces différences peuvent notamment être liées à la "
+        "quantification utilisée lors de la compilation FHE."
+    )
+
+else:
+
+    print(
+        "Aucune divergence n'a été observée sur les échantillons testés."
     )
 
 print(
@@ -273,10 +341,13 @@ print(
     f"x{fhe_overhead:.1f}."
 )
 
-
-# si nb_Échantillon=20 n_bits=6 : taux d'accord clair/FHE    : 17/20 (85.0%), 3 DIVERGENCE
-
-# si nb_Échantillon=20 n_bits=8 : taux d'accord clair/FHE    : 18/20 (90.0%), 2 DIVERGENCE
-
-# si nb_Échantillon=100 n_bits=12 : taux d'accord clair/FHE    : 95/100 (95.0%), 5 DIVERGENCE
-
+print(
+    "La POC montre ainsi le compromis entre la confidentialité "
+    "des données et les performances d'inférence."
+)
+"""
+La POC montre que, avec n_bits=12,
+les prédictions FHE sont identiques aux prédictions du modèle en clair sur les 100 échantillons testés. 
+Aucune divergence n'a été observée.'
+ En contrepartie, l'inférence FHE est environ 40 fois plus lente que l'inférence en clair (21,00 ms contre 0,5242 ms). 
+Ces résultats illustrent le compromis entre confidentialité des données et performances d'inférence."""
