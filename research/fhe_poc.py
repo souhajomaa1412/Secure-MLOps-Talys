@@ -2,11 +2,6 @@
 POC FHE (Fully Homomorphic Encryption) — preuve de concept,
 hors pipeline de production.
 
-Objectifs :
-- comparer les prédictions en clair et en FHE ;
-- mesurer le taux d'accord entre les deux modèles ;
-- mesurer les performances d'inférence ;
-- évaluer le compromis entre confidentialité et performance.
 """
 
 import time
@@ -19,9 +14,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 
-# ============================================================
 # CONFIGURATION
-# ============================================================
 
 DATASET_PATH = "data/diabetes_processed.csv"
 
@@ -29,9 +22,7 @@ N_BITS = 12
 N_SAMPLES = 100
 
 
-# ============================================================
 # DONNÉES
-# ============================================================
 
 print("Chargement des données...")
 
@@ -49,9 +40,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 
-# ============================================================
 # STANDARDISATION
-# ============================================================
 # Même preprocessing que celui utilisé pour la régression
 # logistique dans le pipeline de production.
 
@@ -63,9 +52,7 @@ X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
 
-# ============================================================
 # MODÈLE EN CLAIR
-# ============================================================
 
 print("Entraînement du modèle en clair...")
 
@@ -80,9 +67,7 @@ clear_model.fit(
 )
 
 
-# ============================================================
 # MODÈLE FHE
-# ============================================================
 
 print("Entraînement du modèle FHE...")
 
@@ -102,9 +87,7 @@ fhe_model.compile(
 )
 
 
-# ============================================================
 # COMPARAISON
-# ============================================================
 
 n_test = min(N_SAMPLES, len(X_test_scaled))
 
@@ -123,9 +106,7 @@ for i in range(n_test):
     # Un seul échantillon standardisé
     sample = X_test_scaled[i:i + 1]
 
-    # --------------------------------------------------------
     # Prédiction en clair
-    # --------------------------------------------------------
 
     t0 = time.perf_counter()
 
@@ -135,9 +116,7 @@ for i in range(n_test):
 
     total_clear_time += t_clear
 
-    # --------------------------------------------------------
     # Prédiction FHE
-    # --------------------------------------------------------
 
     t0 = time.perf_counter()
 
@@ -150,16 +129,12 @@ for i in range(n_test):
 
     total_fhe_time += t_fhe
 
-    # --------------------------------------------------------
     # Stockage
-    # --------------------------------------------------------
 
     clear_predictions.append(pred_clear)
     fhe_predictions.append(pred_fhe)
 
-    # --------------------------------------------------------
     # Comparaison
-    # --------------------------------------------------------
 
     if pred_clear == pred_fhe:
         status = "✓"
@@ -176,9 +151,7 @@ for i in range(n_test):
     )
 
 
-# ============================================================
 # TAUX D'ACCORD
-# ============================================================
 
 agreement = sum(
     clear_predictions[i] == fhe_predictions[i]
@@ -188,9 +161,7 @@ agreement = sum(
 agreement_rate = agreement / n_test
 
 
-# ============================================================
 # ACCURACY
-# ============================================================
 
 clear_accuracy = accuracy_score(
     y_test[:n_test],
@@ -203,9 +174,7 @@ fhe_accuracy = accuracy_score(
 )
 
 
-# ============================================================
 # F1-SCORE
-# ============================================================
 
 clear_f1 = f1_score(
     y_test[:n_test],
@@ -220,9 +189,7 @@ fhe_f1 = f1_score(
 )
 
 
-# ============================================================
 # PERFORMANCES
-# ============================================================
 
 average_clear_time = total_clear_time / n_test
 average_fhe_time = total_fhe_time / n_test
@@ -233,9 +200,7 @@ else:
     fhe_overhead = 0
 
 
-# ============================================================
 # RÉSULTATS
-# ============================================================
 
 print("\n" + "=" * 70)
 print("RÉSULTATS POC FHE")
@@ -299,9 +264,7 @@ print(
 print("=" * 70)
 
 
-# ============================================================
 # CONCLUSION
-# ============================================================
 
 print("\nConclusion :")
 

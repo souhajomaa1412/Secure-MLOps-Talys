@@ -16,9 +16,10 @@ spec:
         app: mlops-api
 
     spec:
+      serviceAccountName: mlops-api-sa
       containers:
         - name: api
-          image: mlops-api:local
+          image: mlops-pipeline:latest
           imagePullPolicy: IfNotPresent
 
           ports:

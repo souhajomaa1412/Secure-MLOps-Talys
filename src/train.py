@@ -1,3 +1,7 @@
+"""
+Pipeline d'entraînement - Diabetes MLOps Pipeline
+
+"""
 
 import pandas as pd
 import numpy as np
@@ -6,7 +10,7 @@ import os
 import joblib
 import warnings
 import matplotlib
-matplotlib.use("Agg")
+matplotlib.use("Agg")  # backend sans affichage graphique, nécessaire en conteneur
 import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -22,7 +26,8 @@ import mlflow.sklearn
 
 warnings.filterwarnings('ignore')
 
-# CONFIGURATION
+# ========== CONFIGURATION ==========
+# Toujours lire les données déjà nettoyées par Spark, pas le CSV brut.
 DATASET_PATH = os.environ.get('DATASET_PATH', 'data/diabetes_processed.csv')
 MODEL_PATH = 'models/model.pkl'
 SCALER_PATH = 'models/scaler.pkl'
@@ -47,7 +52,8 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 
-
+# Sauvegarder le split de test pour que les tests pytest et validate.py
+# évaluent sur des données jamais vues à l'entraînement.
 os.makedirs('data', exist_ok=True)
 X_test.to_csv(X_TEST_PATH, index=False)
 y_test.to_csv(Y_TEST_PATH, index=False)
@@ -59,13 +65,13 @@ X_test_scaled = scaler.transform(X_test)
 
 os.makedirs('models', exist_ok=True)
 
-# MLFLOW TRACKING
+# ========== MLFLOW TRACKING ==========
 mlflow_uri = os.environ.get("MLFLOW_TRACKING_URI", "file:./mlruns")
 mlflow.set_tracking_uri(mlflow_uri)
 mlflow.set_experiment("mlops-pipeline-diabetes")
 print(f"MLflow tracking URI : {mlflow_uri}")
 
-# DÉFINITION DES 4 MODÈLES
+# ========== DÉFINITION DES 4 MODÈLES ==========
 experiments = [
     {
         'name': 'LogisticRegression',
@@ -142,9 +148,7 @@ for exp in experiments:
         mlflow.log_artifact(cm_path)
         os.remove(cm_path)  # nettoyage local, l'artefact est déjà dans MLflow
 
-        # ARTEFACT : le scaler, uniquement pour les modèles qui en ont besoin
-        # (LogisticRegression, SVM) — sans lui, le modèle est inutilisable
-        # à l'inférence si on ne l'a que via le registre MLflow.
+        # ARTEFACT
         if exp['needs_scaling']:
             scaler_tmp_path = f"scaler_{exp['name']}.pkl"
             joblib.dump(scaler, scaler_tmp_path)
@@ -207,29 +211,31 @@ print(f"✅ Métriques sauvegardées : {METRICS_PATH}")
 if best_result['f1_score'] >= SEUIL_ACCEPTATION:
     print(f"✅ MODÈLE VALIDÉ (F1 {best_result['f1_score']:.4f} >= {SEUIL_ACCEPTATION})")
 
+    
+    try:
+        with mlflow.start_run(run_id=best_result['run_id']):
+            mlflow.log_artifact(METRICS_PATH)
+            if needs_scaling:
+                mlflow.log_artifact(SCALER_PATH)
 
-    with mlflow.start_run(run_id=best_result['run_id']):
-        mlflow.log_artifact(METRICS_PATH)
-        if needs_scaling:
-            mlflow.log_artifact(SCALER_PATH)
+        REGISTRY_MODEL_NAME = "diabetes-prediction-model"
+        best_run_id = best_result['run_id']
 
-    # ENREGISTREMENT DANS LE MODEL REGISTRY
+        registered = mlflow.register_model(
+            model_uri=f"runs:/{best_run_id}/model",
+            name=REGISTRY_MODEL_NAME
+        )
 
-    REGISTRY_MODEL_NAME = "diabetes-prediction-model"
-    best_run_id = best_result['run_id']
-
-    registered = mlflow.register_model(
-        model_uri=f"runs:/{best_run_id}/model",
-        name=REGISTRY_MODEL_NAME
-    )
-
-    client = mlflow.MlflowClient()
-    client.set_registered_model_alias(
-        name=REGISTRY_MODEL_NAME,
-        alias="champion",
-        version=registered.version
-    )
-    print(f"📦 Modèle enregistré : {REGISTRY_MODEL_NAME} v{registered.version} (alias: champion)")
+        client = mlflow.MlflowClient()
+        client.set_registered_model_alias(
+            name=REGISTRY_MODEL_NAME,
+            alias="champion",
+            version=registered.version
+        )
+        print(f"📦 Modèle enregistré : {REGISTRY_MODEL_NAME} v{registered.version} (alias: champion)")
+    except Exception as e:
+        print(f"⚠️  Enregistrement MLflow Model Registry échoué (non-bloquant) : {e}")
+        print("   Le modèle reste valide et déployable (models/model.pkl, metrics.json OK).")
 else:
     print(f"❌ MODÈLE REJETÉ (F1 {best_result['f1_score']:.4f} < {SEUIL_ACCEPTATION})")
     print("   Aucun enregistrement dans le Model Registry — ancien 'champion' conservé.")

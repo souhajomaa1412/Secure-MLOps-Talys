@@ -2,10 +2,8 @@ services:
   postgres:
     image: postgres:16
     container_name: mlops-postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+    env_file:
+      - .env
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./initdb/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -30,8 +28,6 @@ services:
       - .env
     environment:
       PYTHONUNBUFFERED: 1
-      MLFLOW_TRACKING_URI: http://mlflow:5000
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/mlops_predictions
     depends_on:
       mlflow:
         condition: service_started
@@ -50,16 +46,19 @@ services:
     container_name: mlops-mlflow
     ports:
       - "5000:5000"
+
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      MLFLOW_BACKEND_STORE_URI: postgresql://postgres:postgres@postgres:5432/mlflow
+    env_file:
+      - .env
+
     volumes:
       - ./mlartifacts:/mlartifacts
+
     command: >
       bash -c "
-      pip install psycopg2-binary &&
+      pip install --no-cache-dir psycopg2-binary &&
       mlflow server
       --backend-store-uri postgresql://postgres:postgres@postgres:5432/mlflow
       --default-artifact-root mlflow-artifacts:/
@@ -68,7 +67,9 @@ services:
       --port 5000
       --allowed-hosts 'mlflow:*,localhost:*,127.0.0.1:*'
       "
+
     restart: unless-stopped
+
     networks:
       - mlops-network
 
@@ -80,9 +81,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
     command: >
       bash -c "
@@ -115,10 +117,8 @@ services:
       - .env
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"
-      MLFLOW_TRACKING_URI: http://mlflow:5000
     volumes:
       - ./dags:/opt/airflow/dags
       - ./data:/opt/airflow/data
@@ -148,10 +148,8 @@ services:
       - .env
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"
-      MLFLOW_TRACKING_URI: http://mlflow:5000
     volumes:
       - ./dags:/opt/airflow/dags
       - ./data:/opt/airflow/data
