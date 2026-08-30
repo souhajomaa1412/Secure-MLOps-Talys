@@ -21,37 +21,7 @@ Le pipeline couvre le cycle de vie du modèle :
 
 ## 🏗️ Architecture
 
-```text
-                         Dataset
-                            │
-                            ▼
-                     ┌─────────────┐
-                     │   Airflow   │
-                     └──────┬──────┘
-                            │
-                            ▼
-                  ┌──────────────────┐
-                  │ Training + MLflow│
-                  └────────┬─────────┘
-                           │
-                           ▼
-                     ┌───────────┐
-                     │  FastAPI  │
-                     └─────┬─────┘
-                           │
-                    ┌──────┴──────┐
-                    ▼             ▼
-               PostgreSQL        FHE
-                               Inference
-                           
-                     Monitoring
-                           │
-                    ┌──────┴──────┐
-                    ▼             ▼
-               Prometheus       Grafana
-
-                    Kubernetes
-```
+<img width="1512" height="322" alt="Pipeline drawio" src="https://github.com/user-attachments/assets/1f6193cb-867e-461c-b6d1-feefa93bd3f9" />
 
 ---
 
