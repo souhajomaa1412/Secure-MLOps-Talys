@@ -1,4 +1,4 @@
-# 🩺 Secure MLOps Pipeline for Diabetes Prediction
+<img width="1512" height="322" alt="Pipeline-dark drawio" src="https://github.com/user-attachments/assets/2db9a73d-563b-4214-bd87-ade034eabe37" /># 🩺 Secure MLOps Pipeline for Diabetes Prediction
 
 ## 📌 Description
 
@@ -21,7 +21,7 @@ Le pipeline couvre le cycle de vie du modèle :
 
 ## 🏗️ Architecture
 
-<img width="1512" height="322" alt="Pipeline drawio" src="https://github.com/user-attachments/assets/1f6193cb-867e-461c-b6d1-feefa93bd3f9" />
+<img width="1512" height="322" alt="Pipeline-dark drawio" src="https://github.com/user-attachments/assets/eea30464-c4e8-41c3-9094-00a0e575e065" />
 
 ---
 
