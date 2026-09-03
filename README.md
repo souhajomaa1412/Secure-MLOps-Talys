@@ -2,20 +2,21 @@
 
 ## 📌 Description
 
-Ce projet consiste à concevoir et implémenter un **pipeline MLOps sécurisé** pour la prédiction du diabète.
+This project consists of designing and implementing a **secure MLOps pipeline for diabetes prediction**.
 
-Le pipeline couvre le cycle de vie du modèle :
+The pipeline covers the main stages of the machine learning lifecycle:
 
-* Préparation et versioning des données
-* Entraînement et comparaison des modèles
-* Tracking avec **MLflow**
-* Orchestration avec **Apache Airflow**
-* API de prédiction avec **FastAPI**
-* Conteneurisation avec **Docker**
-* Déploiement avec **Kubernetes**
-* Monitoring avec **Prometheus et Grafana**
-* Sécurité Kubernetes avec **Secrets, ServiceAccount, NetworkPolicy et TLS**
-* PoC: Inférence sécurisée avec **FHE**
+- Data preparation and versioning
+- Model training and comparison
+- Experiment tracking with **MLflow**
+- Workflow orchestration with **Apache Airflow**
+- Prediction API with **FastAPI**
+- Containerization with **Docker**
+- CI/CD with **GitHub Actions**
+- Deployment with **Kubernetes**
+- Monitoring with **Prometheus and Grafana**
+- Kubernetes security with **Secrets, ServiceAccount, NetworkPolicy and TLS**
+- Proof of Concept for secure inference using **Fully Homomorphic Encryption (FHE)**
 
 ---
 
@@ -24,28 +25,34 @@ Le pipeline couvre le cycle de vie du modèle :
 <img width="1512" height="322" alt="Pipeline-dark drawio" src="https://github.com/user-attachments/assets/011cc24b-7c76-408b-83eb-404ffb5a593f" />
 
 ---
-
-## 🛠️ Technologies
-
-* **Python**
-* **FastAPI**
-* **Scikit-learn**
-* **XGBoost**
-* **MLflow**
-* **Apache Airflow**
-* **PostgreSQL**
-* **Docker**
-* **Docker Compose**
-* **Kubernetes**
-* **Prometheus**
-* **Grafana**
-* **FHE**
-* **DVC**
-* **Git / GitHub**
----
-# 📁 Structure du projet
-
-```text
+🛠️ Technologies
+Machine Learning
+Python
+Scikit-learn
+XGBoost
+MLOps
+MLflow
+Apache Airflow
+DVC
+GitHub Actions
+API and Backend
+FastAPI
+PostgreSQL
+Containerization and Deployment
+Docker
+Docker Compose
+Kubernetes
+Monitoring
+Prometheus
+Grafana
+Security
+Kubernetes Secrets
+ServiceAccount
+NetworkPolicy
+TLS / HTTPS
+Ingress NGINX
+FHE (Fully Homomorphic Encryption) PoC
+📁 Project Structure
 projet-pipeline/
 │
 ├── dags/
@@ -55,10 +62,10 @@ projet-pipeline/
 │   └── Datasets
 │
 ├── models/
-│   └── Modèles entraînés
+│   └── Trained models
 │
 ├── src/
-│   └── Code source
+│   └── Source code
 │
 ├── monitoring/
 │   └── prometheus.yml
@@ -69,7 +76,6 @@ projet-pipeline/
 │   ├── postgres.yml
 │   ├── postgres-secret.yaml
 │   ├── api-secrets.yaml
-│   ├── rbac.yaml
 │   ├── network-security.yaml
 │   └── tls-selfsigned.yaml
 │
@@ -81,218 +87,268 @@ projet-pipeline/
 ├── docker-compose.yml
 ├── docker-compose.monitoring.yml
 ├── requirements.txt
-```
----
-
-
-# 🚀 Installation
-
-## 1. Cloner le projet
-
-```bash
+└── README.md
+🚀 Installation
+1. Clone the repository
 git clone https://github.com/souhajomaa1412/mlops-pipeline.git
 cd mlops-pipeline
-```
-
-## 2. Lancer les services
-
-```bash
+2. Start the MLOps services
 docker compose up -d
-```
 
-Vérifier les conteneurs :
+Check the running containers:
 
-```bash
 docker compose ps
-```
 
-Arrêter les services :
+Stop the services:
 
-```bash
 docker compose down
-```
+🌐 Application Interfaces
 
----
+After starting the services, the main interfaces are available at:
 
-# 🌐 Interfaces
+Service	Address
+FastAPI	http://localhost:8000
+FastAPI Swagger	http://localhost:8000/docs
+MLflow	http://localhost:5000
+Airflow	http://localhost:8092
+Prometheus	http://localhost:9090
+Grafana	http://localhost:3000
+🤖 Machine Learning
 
-Après le démarrage :
+The project trains and compares several machine learning algorithms for diabetes prediction.
 
-| Service         | Adresse                    |
-| --------------- | -------------------------- |
-| FastAPI         | http://localhost:8000      |
-| FastAPI Swagger | http://localhost:8000/docs |
-| MLflow          | http://localhost:5000      |
-| Airflow         | http://localhost:8092      |
-| Prometheus      | http://localhost:9090      |
-| Grafana         | http://localhost:3000      |
+The evaluated models include:
 
----
+Logistic Regression
+Random Forest
+SVM with RBF kernel
+XGBoost
 
-# 📊 Monitoring
+The best model is selected according to the evaluation metrics and can then be used by the prediction API.
 
-Le monitoring est réalisé avec **Prometheus et Grafana**.
+📊 MLflow
 
-Prometheus collecte les métriques de l'API et du GPU.
+MLflow is used to track machine learning experiments.
 
-Grafana permet de visualiser notamment :
+It allows the project to track:
 
-* Nombre de requêtes
-* Temps de réponse
-* Taux d'erreur
-* Utilisation du GPU
-* Métriques de performance
+Model parameters
+Evaluation metrics
+Training runs
+Model artifacts
+Best model
 
----
+MLflow provides a centralized interface for comparing different training experiments.
 
-# ☸️ Kubernetes
+🔄 Apache Airflow
 
-Les fichiers Kubernetes se trouvent dans le dossier :
+Apache Airflow is used to orchestrate the machine learning workflow.
 
-```text
+The workflow can automate tasks such as:
+
+Data
+  ↓
+Training
+  ↓
+Validation
+  ↓
+Model Selection
+  ↓
+Deployment
+
+This allows the ML pipeline to be executed in an automated and reproducible way.
+
+🧪 Testing and CI/CD
+
+Automated tests are implemented using pytest.
+
+The CI/CD workflow verifies the project before deployment.
+
+Main steps include:
+
+Push to GitHub
+      ↓
+Install dependencies
+      ↓
+Run tests
+      ↓
+Validate the model
+      ↓
+Build Docker image
+      ↓
+Push image to GHCR
+
+The raw dataset is included in the project so that the CI workflow can execute and validate the pipeline automatically.
+
+🐳 Docker
+
+The FastAPI application is containerized using Docker.
+
+Build the image:
+
+docker build -t mlops-pipeline .
+
+Run the container:
+
+docker run -p 8000:8000 mlops-pipeline
+📦 Docker Image from GHCR
+
+The project image is also available through GitHub Container Registry (GHCR).
+
+Pull the image:
+
+docker pull ghcr.io/souhajomaa1412/mlops-pipeline:a0ae79038091ef3d1d6d7d5b34e3eaa331e6ad0e
+
+Check the downloaded image:
+
+docker images
+☸️ Kubernetes Deployment
+
+The Kubernetes configuration is located in:
+
 k8s/
-├── namespace.yml
-├── api.yml
-├── postgres.yml
-├── postgres-secret.yaml
-├── api-secrets.yaml
-├── rbac.yaml
-├── network-security.yaml
-└── tls-selfsigned.yaml
-```
-
-## 1. Créer le namespace
-
-```bash
+1. Create the namespace
 kubectl apply -f k8s/namespace.yml
-```
-
-## 2. Déployer PostgreSQL
-
-```bash
+2. Deploy PostgreSQL
 kubectl apply -f k8s/postgres-secret.yaml
 kubectl apply -f k8s/postgres.yml
-```
-
-## 3. Déployer l'API
-
-```bash
+3. Deploy the API
 kubectl apply -f k8s/api-secrets.yaml
 kubectl apply -f k8s/api.yml
-```
 
-Vérifier les pods :
+Check the pods:
 
-```bash
 kubectl get pods -n mlops
-```
 
-Vérifier les services :
+Check the services:
 
-```bash
 kubectl get services -n mlops
-```
+🔐 Kubernetes Security
 
----
+The Kubernetes deployment includes several security mechanisms.
 
-# 🔒 TLS et Ingress
+Secrets
 
-Le projet utilise **Ingress NGINX** et **cert-manager** pour sécuriser l'accès à l'API avec TLS.
+Sensitive configuration such as database credentials and API configuration is stored using Kubernetes Secrets.
 
-```bash
-kubectl apply -f k8s/tls-selfsigned.yaml
-```
-
-Vérifier le certificat :
-
-```bash
-kubectl get certificate -n mlops
-```
-
-Vérifier l'Ingress :
-
-```bash
-kubectl get ingress -n mlops
-```
-
----
-
-# 🛡️ Kubernetes Security
-
-La sécurité Kubernetes utilise :
-
-```text
-API
- │
- ▼
+api-secrets.yaml
+postgres-secret.yaml
 ServiceAccount
- │
- ▼
-Kubernetes
- │
- ├── Secrets
- ├── NetworkPolicy
- └── TLS / Ingress
-```
 
-Les communications vers PostgreSQL sont limitées grâce à la **NetworkPolicy**.
+The FastAPI application runs with a dedicated Kubernetes ServiceAccount:
 
----
+mlops-api-sa
 
-# 🔐 FHE Inference
+The ServiceAccount token is not automatically mounted into the pod.
 
-Le projet utilise **Fully Homomorphic Encryption (FHE)** afin de permettre l'inférence sur des données chiffrées.
+NetworkPolicy
 
-L'objectif est de protéger les données sensibles pendant le processus de prédiction.
+A NetworkPolicy restricts access to PostgreSQL.
 
-Cette sécurité entraîne cependant un **coût en performance** par rapport à l'inférence en clair.
+Only the FastAPI pods are allowed to communicate with PostgreSQL on port 5432.
 
----
+FastAPI Pods
+     │
+     │ TCP 5432
+     ▼
+ PostgreSQL
 
-# 📦 Docker Image
+This reduces unnecessary network access between Kubernetes workloads.
 
-L'image de l'API est disponible sur **GitHub Container Registry (GHCR)**.
+🔒 TLS and Ingress
 
-Pour récupérer l'image :
+The API is exposed through an NGINX Ingress with TLS.
 
-```bash
-docker pull ghcr.io/souhajomaa1412/mlops-pipeline:a0ae79038091ef3d1d6d7d5b34e3eaa331e6ad0e
-```
+The project uses cert-manager to generate and manage the TLS certificate.
 
-Vérifier l'image :
+Apply the TLS and Ingress configuration:
 
-```bash
-docker images
-```
+kubectl apply -f k8s/tls-selfsigned.yaml
 
----
+Check the certificate:
+
+kubectl get certificate -n mlops
+
+Check the Ingress:
+
+kubectl get ingress -n mlops
+
+The API is intended to be accessed through:
+
+https://mlops-api.local
+📈 Monitoring
+
+The application is monitored using Prometheus and Grafana.
+
+The monitoring system collects application and infrastructure metrics.
+
+Examples include:
+
+Number of API requests
+API response time
+HTTP error rate
+GPU utilization
+Application performance
+
+Architecture:
+
+FastAPI
+   │
+   ▼
+Prometheus
+   │
+   ▼
+Grafana
+
+Grafana dashboards provide a visual overview of the system performance.
+
+🔐 FHE Inference PoC
+
+The project also includes a Proof of Concept using Fully Homomorphic Encryption (FHE).
+
+The objective is to perform machine learning inference while keeping input data encrypted.
+
+Sensitive Data
+      ↓
+   Encryption
+      ↓
+Encrypted Data
+      ↓
+ FHE Inference
+      ↓
+Prediction
+
+FHE improves data privacy but introduces an additional computational cost compared with standard plaintext inference.
+
+📊 Results
+
+The pipeline provides:
+
+✅ Automated model training
+✅ Comparison of multiple ML models
+✅ Experiment tracking with MLflow
+✅ Reproducible data management with DVC
+✅ Automated testing and CI/CD
+✅ FastAPI prediction service
+✅ Docker containerization
+✅ Kubernetes deployment
+✅ PostgreSQL persistence
+✅ Prometheus and Grafana monitoring
+✅ Kubernetes Secrets
+✅ Dedicated ServiceAccount
+✅ NetworkPolicy for database protection
+✅ HTTPS with TLS
+✅ FHE inference Proof of Concept
+🔒 Security Overview
 
 
----
 
-# 🧪 Résultats
+The project therefore combines MLOps automation, cloud-native deployment, monitoring, and security mechanisms.
 
-Le pipeline permet :
+👩‍💻 Author
 
-* ✅ L'automatisation de l'entraînement
-* ✅ Le suivi des expériences ML
-* ✅ Le déploiement d'une API de prédiction
-* ✅ La persistance des prédictions
-* ✅ Le monitoring de l'application
-* ✅ Le monitoring GPU
-* ✅ Le déploiement Kubernetes
-* ✅ La sécurisation des communications avec TLS
-* ✅ La protection des données avec FHE
-
----
-
-
-
-# 👩‍💻 Auteur
-
-**Souha Jomaa**
+Souha Jomaa
 
 Computer Engineering Student
-**Cloud Computing & Cybersecurity**
-
+Cloud Computing & Cybersecurity
 ---
