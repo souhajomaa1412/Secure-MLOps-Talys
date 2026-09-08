@@ -1,4 +1,4 @@
-# 🩺 Secure MLOps Pipeline for Diabetes Prediction
+# 🩺 Secure MLOps Pipeline
 
 ## 📌 Description
 
