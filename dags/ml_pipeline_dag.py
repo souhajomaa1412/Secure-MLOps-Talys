@@ -115,5 +115,5 @@ task_security = PythonOperator(
     dag=dag
 )
 
-
+# Définir l'ordre d'exécution des tâches
 task_extract >> task_preprocess >> task_train >> task_validate >> task_security

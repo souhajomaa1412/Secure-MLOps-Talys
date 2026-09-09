@@ -450,12 +450,6 @@ The pipeline provides:
 
 ---
 
-## 🔒 Security Overview
-
-The project therefore combines MLOps automation, cloud-native deployment, monitoring, and security mechanisms.
-
----
-
 ## 👩‍💻 Author
 
 **Souha Jomaa**
