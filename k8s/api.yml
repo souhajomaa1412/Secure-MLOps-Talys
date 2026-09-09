@@ -19,7 +19,8 @@ spec:
       serviceAccountName: mlops-api-sa
       containers:
         - name: api
-          image: mlops-pipeline:latest
+          #image: mlops-pipeline:latest
+          image: ghcr.io/souhajomaa1412/mlops-pipeline:latest
           imagePullPolicy: IfNotPresent
 
           ports:
