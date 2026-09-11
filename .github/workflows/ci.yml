@@ -1,42 +1,94 @@
-name: Build and Deploy
-
+name: MLOps Pipeline CI/CD
 on:
   push:
-    branches: [main]
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  build-and-deploy:
+  test:
     runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
+    - name: Setup Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Setup Java (PySpark)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
+
+    - name: Run pipeline (preprocess + train)
+      run: |
+        python src/preprocess_spark.py
+        python src/train.py
+
+    - name: Run pytest
+      run: python -m pytest src/test_pipeline.py -v
+
+
+    - name: Upload trained model artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: trained-model
+        path: |
+          models/
+          metrics.json
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
     permissions:
       contents: read
-      packages: write
-
+      packages: write #add permissions
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Download trained model artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: trained-model
 
-      - name: Build Docker image
-        run: |
-          docker build \
-            -t ghcr.io/${{ github.repository_owner }}/mlops-pipeline:${{ github.sha }} \
-            -t ghcr.io/${{ github.repository_owner }}/mlops-pipeline:latest \
-            .
+    - name: Build Docker image
+      run: docker build -t mlops-pipeline:${{ github.sha }} .
 
-      - name: Push Docker image
-        run: |
-          docker push ghcr.io/${{ github.repository_owner }}/mlops-pipeline:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository_owner }}/mlops-pipeline:latest
+    - name: Test API container
+      run: |
+        docker run -d -p 8000:8000 --name test-api mlops-pipeline:${{ github.sha }}
+        for i in {1..10}; do
+          curl -sf http://localhost:8000/health && break
+          echo "API... ($i/10)"
+          sleep 3
+        done
+        curl -sf http://localhost:8000/health || (docker logs test-api && exit 1)
+        docker stop test-api
+    # Ne pousse en registry que sur main
+    - name: Login to GitHub Container Registry
+      if: github.ref == 'refs/heads/main'
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy to Kubernetes
-        run: |
-          kubectl set image deployment/mlops-api \
-            api=ghcr.io/${{ github.repository_owner }}/mlops-pipeline:${{ github.sha }} \
-            -n mlops
+    - name: Push image
+      if: github.ref == 'refs/heads/main'
+      run: |
+        IMAGE=ghcr.io/${{ github.repository_owner }}/mlops-pipeline
+        docker tag mlops-pipeline:${{ github.sha }} $IMAGE:${{ github.sha }}
+        docker tag mlops-pipeline:${{ github.sha }} $IMAGE:latest
+        docker push $IMAGE:${{ github.sha }}
+        docker push $IMAGE:latest
+ 
