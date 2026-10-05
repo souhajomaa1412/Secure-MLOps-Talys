@@ -22,7 +22,7 @@ The pipeline covers the main stages of the machine learning lifecycle:
 
 ## 🏗️ Architecture
 
-<img width="1512" height="322" alt="Pipeline-dark drawio" src="https://github.com/user-attachments/assets/011cc24b-7c76-408b-83eb-404ffb5a593f" />
+<img width="1774" height="887" alt="architecture-mlops" src="https://github.com/user-attachments/assets/9b44c4ac-3c5e-41ab-8897-62fb26390cb5" />
 
 ---
 
