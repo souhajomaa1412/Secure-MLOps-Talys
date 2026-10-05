@@ -1,3 +1,4 @@
+#pipeline ci
 name: MLOps Pipeline CI/CD
 on:
   push:

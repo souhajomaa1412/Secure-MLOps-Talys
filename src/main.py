@@ -16,6 +16,10 @@ from cryptography.fernet import Fernet, InvalidToken
 from dotenv import load_dotenv #.env
 load_dotenv()
 
+
+
+
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("mlops-api")
 
